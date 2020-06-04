@@ -2,11 +2,11 @@ package main
 
 import (
 	"encoding/json"
-	"flag"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/gorilla/handlers"
@@ -14,9 +14,8 @@ import (
 )
 
 func main() {
-	serverPort := flag.Int("server-port", 8080, "Port to listen for requests")
-	targetServer := flag.String("target-server", "http://127.0.0.1:8080/env", "Target server that receives our requests")
-	flag.Parse()
+	serverPort, _ := strconv.Atoi(getEnv("SERVER_PORT", "8080"))
+	targetServer := getEnv("TARGET_SERVER", "http://127.0.0.1:8080/env")
 
 	envVariables := make(map[string]string)
 	for _, v := range os.Environ() {
@@ -29,9 +28,18 @@ func main() {
 	http.Handle("/env", handlers.LoggingHandler(log.StandardLogger().Out, MakeEnvHandler(envVariables)))
 	//http.HandleFunc("/env", MakeEnvHandler(envVariables))
 	http.Handle("/health", handlers.LoggingHandler(log.StandardLogger().Out, MakeHealthHandler()))
-	http.Handle("/forward", handlers.LoggingHandler(log.StandardLogger().Out, MakeForwardHandler(*targetServer)))
-	log.Infof("Start listening on port %d", *serverPort)
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *serverPort), nil))
+	http.Handle("/forward", handlers.LoggingHandler(log.StandardLogger().Out, MakeForwardHandler(targetServer)))
+	log.Infof("Start listening on port %d", serverPort)
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", serverPort), nil))
+}
+
+func getEnv(key string, fallback string) string {
+	value, exists := os.LookupEnv(key)
+	if !exists {
+		return fallback
+	}
+
+	return value
 }
 
 func MakeEnvHandler(envVariables map[string]string) http.HandlerFunc {
