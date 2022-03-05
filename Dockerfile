@@ -5,10 +5,10 @@ RUN apk add --update git make bash ca-certificates
 
 WORKDIR /go/src/github.com/daspawnw/training-server
 COPY . ./
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o bin/training-server-linux-amd64 ./cmd/training-server/...
+RUN CGO_ENABLED=0 go build -o bin/training-server ./cmd/training-server/...
 
 FROM scratch
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-COPY --from=builder /go/src/github.com/daspawnw/training-server/bin/training-server-linux-amd64 /training-server
+COPY --from=builder /go/src/github.com/daspawnw/training-server/bin/training-server /training-server
 
 ENTRYPOINT ["/training-server"]
